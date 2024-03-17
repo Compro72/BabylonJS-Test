@@ -62,54 +62,49 @@
         var sceneToRender = null;
         var createDefaultEngine = function() { return new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true,  disableWebGL2Support: false}); };
         var createScene = function () {
-        	var scene = new BABYLON.Scene(engine);
-        
-        	var camera = new BABYLON.ArcRotateCamera("Camera", 3 * Math.PI / 2, Math.PI / 4, 100, BABYLON.Vector3.Zero(), scene);
-        	camera.attachControl(canvas, true, false);
-        
-        	var light = new BABYLON.HemisphericLight("light1", new BABYLON.Vector3(0, 1, 0), scene);
-        	
-        	// Skybox
-        	var skybox = BABYLON.Mesh.CreateBox("skyBox", 1000.0, scene);
-            var skyboxMaterial = new BABYLON.StandardMaterial("skyBox", scene);
-        	skyboxMaterial.backFaceCulling = false;
-        	skyboxMaterial.reflectionTexture = new BABYLON.CubeTexture("textures/skybox3", scene);
-        	skyboxMaterial.reflectionTexture.coordinatesMode = BABYLON.Texture.SKYBOX_MODE;
-        	skyboxMaterial.diffuseColor = new BABYLON.Color3(0, 0, 0);
-        	skyboxMaterial.specularColor = new BABYLON.Color3(0, 0, 0);
-        	skyboxMaterial.disableLighting = true;
-        	skybox.material = skyboxMaterial;
-        			
-        	// Ground
-        	var groundTexture = new BABYLON.Texture("textures/grass.dds", scene);
-        	groundTexture.vScale = groundTexture.uScale = 8.0;
-        	
-        	var groundMaterial = new BABYLON.StandardMaterial("groundMaterial", scene);
-        	groundMaterial.diffuseTexture = groundTexture;
-        	
-        	var ground = BABYLON.Mesh.CreateGround("ground", 512, 512, 32, scene, false);
-        	ground.position.y = -1;
-        	ground.material = groundMaterial;
-        		
-        	// Water
-        	var waterMesh = BABYLON.Mesh.CreateGround("waterMesh", 512, 512, 32, scene, false);
-        	var water = new BABYLON.WaterMaterial("water", scene, new BABYLON.Vector2(512, 512));
-        	water.backFaceCulling = true;
-        	water.bumpTexture = new BABYLON.Texture("textures/waterbump.png", scene);
-        	water.windForce = -5;
-        	water.waveHeight = 0.2;
-        	water.bumpHeight = 0.05;
-        	water.waterColor = new BABYLON.Color3(0.047, 0.23, 0.015);
-        	water.colorBlendFactor = 0.5;
-        	water.addToRenderList(skybox);
-        	water.addToRenderList(ground);
-        	waterMesh.material = water;
-        
-        	return scene;
-        }
+    // This creates a basic Babylon Scene object (non-mesh)
+    var scene = new BABYLON.Scene(engine);
+
+    // This creates and positions a free camera (non-mesh)
+    var camera = new BABYLON.FreeCamera("camera1", new BABYLON.Vector3(0, 5, -10), scene);
+
+    // This targets the camera to scene origin
+    camera.setTarget(BABYLON.Vector3.Zero());
+
+    // This attaches the camera to the canvas
+    camera.attachControl(canvas, true);
+
+    // This creates a light, aiming 0,1,0 - to the sky (non-mesh)
+    var light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
+
+    // Default intensity is 1. Let's dim the light a small amount
+    light.intensity = 0.7;
+
+    // Our built-in 'sphere' shape.
+    var sphere = BABYLON.MeshBuilder.CreateSphere("sphere", {diameter: 2, segments: 32}, scene);
+
+    // Move the sphere upward at 4 units
+    sphere.position.y = 4;
+
+    // Our built-in 'ground' shape.
+    var ground = BABYLON.MeshBuilder.CreateGround("ground", {width: 10, height: 10}, scene);
+
+    // initialize plugin
+    var hk = new BABYLON.HavokPlugin();
+    // enable physics in the scene with a gravity
+    scene.enablePhysics(new BABYLON.Vector3(0, -9.8, 0), hk);
+
+    // Create a sphere shape and the associated body. Size will be determined automatically.
+    var sphereAggregate = new BABYLON.PhysicsAggregate(sphere, BABYLON.PhysicsShapeType.SPHERE, { mass: 1, restitution:0.75}, scene);
+
+    // Create a static box shape.
+    var groundAggregate = new BABYLON.PhysicsAggregate(ground, BABYLON.PhysicsShapeType.BOX, { mass: 0 }, scene);
+
+    return scene;
+};
                 window.initFunction = async function() {
                     
-                    
+                    globalThis.HK = await HavokPhysics();
                     
                     var asyncEngineCreation = async function() {
                         try {
